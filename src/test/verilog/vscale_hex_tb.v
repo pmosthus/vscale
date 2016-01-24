@@ -57,11 +57,14 @@ module vscale_hex_tb();
          end
       end
       if (vpdfile) begin
-        //$vcdplusfile(vpdfile);
-        //$vcdpluson();
-        //$vcdplusmemon();
-        $dumpfile (vpdfile);
-        $dumpvars (0, DUT.vscale);
+        `ifndef __ICARUS__
+          $vcdplusfile(vpdfile);
+          $vcdpluson();
+          $vcdplusmemon();
+        `else  
+          $dumpfile (vpdfile);
+          $dumpvars (0, DUT.vscale);
+        `endif  
       end  
       #100 reset = 0;
    end // initial begin
@@ -75,11 +78,11 @@ module vscale_hex_tb();
       if (!reset) begin
          if (htif_pcr_resp_valid && htif_pcr_resp_data != 0) begin
             if (htif_pcr_resp_data == 1) begin
-               //$vcdplusclose;
+              `ifndef __ICARUS__ $vcdplusclose; `endif
                $display("%0t - Simulation finished without errors!", $time);
                $finish;
             end else begin
-               //$vcdplusclose;
+              `ifndef __ICARUS__ $vcdplusclose; `endif
                $sformat(reason, "tohost = %0d", htif_pcr_resp_data >> 1);
             end
          end
@@ -88,7 +91,7 @@ module vscale_hex_tb();
 
       if (reason) begin
          $error("*** FAILED *** (%0s) after %0d simulation cycles", reason, trace_count);
-         //$vcdplusclose;
+         `ifndef __ICARUS__  $vcdplusclose; `endif  
          $finish;
       end
    end
