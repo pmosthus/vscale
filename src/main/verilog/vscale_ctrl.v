@@ -148,7 +148,7 @@ module vscale_ctrl(
 
    assign kill_DX = stall_DX || ex_DX || ex_WB;
    assign stall_DX = stall_WB || load_use || raw_on_busy_md
-                     || (fence_i && store_in_WB) || (uses_md && !md_req_ready);
+                     || (fence_i && store_in_WB) || !md_req_ready;
    assign new_ex_DX = ebreak || ecall || illegal_instruction || illegal_csr_access;
    assign ex_DX = had_ex_DX || ((new_ex_DX) && !stall_DX); // TODO: add causes
    assign killed_DX = prev_killed_DX || kill_DX;
