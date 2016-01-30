@@ -39,6 +39,14 @@ VCS_OPTS = -PP -notice -line +lint=all,noVCDE,noUI +v2k -timescale=1ns/10ps -qui
 	+vc+list -CC "-I$(VCS_HOME)/include" \
 	-CC "-std=c++11" \
 
+IVERILOG = iverilog
+
+IVERILOG_TOP = $(V_TEST_DIR)/vscale_hex_tb.v
+
+IVERILOG_TOP_MODULE = vscale_hex_tb
+
+IVERILOG_OPTS = -s $(IVERILOG_TOP_MODULE) -Wall -tvvp -I$(V_SRC_DIR)
+
 MAX_CYCLES = 1000000
 
 SIMV_OPTS = -k $(OUT_DIR)/ucli.key -q
@@ -82,6 +90,8 @@ TEST_VPD_FILES = $(addprefix $(OUT_DIR)/,$(addsuffix .vpd,$(RV32_TESTS)))
 
 VERILATOR_VCD_FILES = $(addprefix $(OUT_DIR)/,$(addsuffix .verilator.vcd,$(RV32_TESTS)))
 
+IVERILOG_LXT_FILES = $(addprefix $(OUT_DIR)/,$(addsuffix .iverilog.lxt,$(RV32_TESTS)))
+
 default: $(SIM_DIR)/simv
 
 run-asm-tests: $(TEST_VPD_FILES)
@@ -89,6 +99,8 @@ run-asm-tests: $(TEST_VPD_FILES)
 verilator-sim: $(SIM_DIR)/Vvscale_verilator_top
 
 verilator-run-asm-tests: $(VERILATOR_VCD_FILES)
+
+iverilog-run-asm-tests: $(IVERILOG_LXT_FILES)
 
 $(OUT_DIR)/%.vpd: $(MEM_DIR)/%.hex $(SIM_DIR)/simv
 	mkdir -p output
@@ -106,6 +118,15 @@ $(SIM_DIR)/Vvscale_verilator_top: $(VERILATOR_TOP) $(SIM_SRCS) $(DESIGN_SRCS) $(
 	$(VERILATOR) $(VERILATOR_OPTS) $(VERILATOR_TOP) $(SIM_SRCS) $(DESIGN_SRCS) --exe ../$(VERILATOR_CPP_TB)
 	cd sim; make $(VERILATOR_MAKE_OPTS) -f Vvscale_verilator_top.mk Vvscale_verilator_top__ALL.a
 	cd sim; make $(VERILATOR_MAKE_OPTS) -f Vvscale_verilator_top.mk Vvscale_verilator_top
+
+$(OUT_DIR)/%.iverilog.lxt: $(MEM_DIR)/%.hex $(SIM_DIR)/iverilog.vvp
+	mkdir -p output
+	$(SIM_DIR)/iverilog.vvp -lxt2 +loadmem=$< +vpdfile=$@ +max-cycles=$(MAX_CYCLES) && [ $$PIPESTATUS -eq 0 ]
+
+
+$(SIM_DIR)/iverilog.vvp: $(IVERILOG_TOP) $(SIM_SRCS) $(DESIGN_SRCS) $(HDRS)
+	mkdir -p sim
+	$(IVERILOG) $(IVERILOG_OPTS) $(IVERILOG_TOP) $(SIM_SRCS) $(DESIGN_SRCS) -o $@
 
 clean:
 	rm -rf $(SIM_DIR)/* $(OUT_DIR)/*

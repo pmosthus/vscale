@@ -113,6 +113,9 @@ module vscale_csr_file(
            default : wdata_internal = wdata;
          endcase // case (cmd)
       end
+      else begin
+        wdata_internal = wdata;
+      end
    end // always @ begin
 
    assign uinterrupt = 1'b0;

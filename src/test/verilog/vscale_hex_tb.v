@@ -3,7 +3,7 @@
 
 module vscale_hex_tb();
 
-   localparam hexfile_words = 8192;
+   parameter hexfile_words = 8192;
 
    reg clk;
    reg reset;
@@ -16,8 +16,8 @@ module vscale_hex_tb();
    reg [1023:0]               vpdfile = 0;
    reg [  63:0]               max_cycles = 0;
    reg [  63:0]               trace_count = 0;
-   integer                    stderr = 32'h80000002;
-
+//   integer                    stderr = 32'h80000002;
+//   integer                    stdout = 32'h80000000;
    reg [127:0]                hexfile [hexfile_words-1:0];
 
    vscale_sim_top DUT(
@@ -44,10 +44,11 @@ module vscale_hex_tb();
    integer j = 0;
 
    initial begin
-      $value$plusargs("max-cycles=%d", max_cycles);
-      $value$plusargs("loadmem=%s", loadmem);
-      $value$plusargs("vpdfile=%s", vpdfile);
+      i = $value$plusargs("max-cycles=%d", max_cycles);
+      i = $value$plusargs("loadmem=%s", loadmem);
+      i = $value$plusargs("vpdfile=%s", vpdfile);
       if (loadmem) begin
+         $display("%0t - Loading %0s into memory..", $time, loadmem);
          $readmemh(loadmem, hexfile);
          for (i = 0; i < hexfile_words; i = i + 1) begin
             for (j = 0; j < 4; j = j + 1) begin
@@ -55,9 +56,16 @@ module vscale_hex_tb();
             end
          end
       end
-      $vcdplusfile(vpdfile);
-      $vcdpluson();
-      // $vcdplusmemon();
+      if (vpdfile) begin
+        `ifndef __ICARUS__
+          $vcdplusfile(vpdfile);
+          $vcdpluson();
+          $vcdplusmemon();
+        `else  
+          $dumpfile (vpdfile);
+          $dumpvars (0, DUT.vscale);
+        `endif  
+      end  
       #100 reset = 0;
    end // initial begin
 
@@ -70,19 +78,20 @@ module vscale_hex_tb();
       if (!reset) begin
          if (htif_pcr_resp_valid && htif_pcr_resp_data != 0) begin
             if (htif_pcr_resp_data == 1) begin
-               $vcdplusclose;
+              `ifndef __ICARUS__ $vcdplusclose; `endif
+               $display("%0t - Simulation finished without errors!", $time);
                $finish;
             end else begin
-               $vcdplusclose;
-               $sformat(reason, "tohost = %d", htif_pcr_resp_data >> 1);
+              `ifndef __ICARUS__ $vcdplusclose; `endif
+               $sformat(reason, "tohost = %0d", htif_pcr_resp_data >> 1);
             end
          end
       end
 
 
       if (reason) begin
-         $fdisplay(stderr, "*** FAILED *** (%s) after %d simulation cycles", reason, trace_count);
-         $vcdplusclose;
+         $error("*** FAILED *** (%0s) after %0d simulation cycles", reason, trace_count);
+         `ifndef __ICARUS__  $vcdplusclose; `endif  
          $finish;
       end
    end
